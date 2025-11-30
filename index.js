@@ -6,6 +6,11 @@ import { runPipeline } from "./src/pipeline.js";
 const app = express();
 app.use(express.json());
 
+app.post("/webhook/github", (req, res) => {
+  console.log("📥 GitHub Webhook received:", req.body);
+  res.status(200).send("ok");
+});
+
 app.get("/health", (req, res) => {
   res.json({ ok: true, status: "Servoya base backend online" });
 });
