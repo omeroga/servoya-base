@@ -1,6 +1,12 @@
 import fetch from "node-fetch";
 import { supabase } from "./supabaseClient.js";
 
+export async function getTrend() {
+  return {
+    title: "Fallback trend from v10",
+    source: "internal"
+  };
+}
 export async function runTrendEngine() {
   try {
     console.log("🚀 Trend Engine v10 running...");

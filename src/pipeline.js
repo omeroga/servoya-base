@@ -1,4 +1,4 @@
-import { getTrend } from "./trendEngine_v1.js";
+import { getTrend } from "./trendEngine_v10.js";
 import { mapTrendToProduct } from "./productMapper_v1.js";
 import { generateScript } from "./scriptEngine_v1.js";
 import { fetchImages } from "./imageFetcher_v1.js";
