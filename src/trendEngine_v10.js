@@ -1,12 +1,21 @@
 import fetch from "node-fetch";
 import { supabase } from "./supabaseClient.js";
 
+/*  
+  Provides a single trend object for the pipeline.
+  Right now it returns a fallback trend, and you can expand later.
+*/
 export async function getTrend() {
   return {
     title: "Fallback trend from v10",
     source: "internal"
   };
 }
+
+/*  
+  This function collects trends from external APIs and saves them to Supabase.
+  It is *not* used by the pipeline.
+*/
 export async function runTrendEngine() {
   try {
     console.log("🚀 Trend Engine v10 running...");

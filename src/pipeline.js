@@ -8,6 +8,7 @@ import { logPerformance } from "./performanceLogger_v1.js";
 
 export async function runPipeline(options = {}) {
   const startedAt = new Date().toISOString();
+
   try {
     const trend = await getTrend(options);
     const mapping = mapTrendToProduct(trend.title);
@@ -53,6 +54,7 @@ export async function runPipeline(options = {}) {
     });
 
     return result;
+
   } catch (err) {
     await logPerformance({
       status: "error",
