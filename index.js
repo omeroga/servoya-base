@@ -28,6 +28,20 @@ app.post("/api/generate/video", async (req, res) => {
   }
 });
 
+import { exec } from "child_process";
+
+// GitHub Webhook for deploy
+app.post("/deploy", (req, res) => {
+  exec("bash /root/servoya/deploy.sh", (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Deploy error: ${error.message}`);
+      return res.status(500).send("Deploy failed");
+    }
+    console.log(stdout);
+    res.send("Deploy complete");
+  });
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Servoya base listening on port ${PORT}`);
