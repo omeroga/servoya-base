@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
-dotenv.config({ override: true });
+dotenv.config();
+
 import express from "express";
 import { runPipeline } from "./src/pipeline.js";
 import { runTrendEngine } from "./src/trends/trendEngine_v1.js";
