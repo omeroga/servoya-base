@@ -1,4 +1,4 @@
-import { getTrend } from "./trendEngine_v10.js";
+import { getTrendV1 } from "./trends/trendEngine_v1.js";
 import { mapTrendToProduct } from "./productMapper_v1.js";
 import { generateScript } from "./scriptEngine_v1.js";
 import { fetchImages } from "./imageFetcher_v1.js";
@@ -10,9 +10,16 @@ export async function runPipeline(options = {}) {
   const startedAt = new Date().toISOString();
 
   try {
-    const trend = await getTrend(options);
+    // 1. Fetch trend
+    const trend = await getTrendV1(options);
+
+    // 2. Map trend to product info
     const mapping = mapTrendToProduct(trend.title);
+
+    // 3. Generate script
     const script = await generateScript({ trend, mapping });
+
+    // 4. Fetch media
     const images = await fetchImages({ trend, mapping });
     const audioPath = await fetchAudio({ trend, mapping });
 
@@ -25,6 +32,7 @@ export async function runPipeline(options = {}) {
       videoPath: null
     };
 
+    // 5. Validate media
     if (!images.length || !audioPath) {
       await logPerformance({
         status: "no_media",
@@ -35,7 +43,9 @@ export async function runPipeline(options = {}) {
       return result;
     }
 
+    // 6. Build video
     const outputPath = `./output/servoya_${Date.now()}.mp4`;
+
     const videoInfo = await buildVideoFFMPEG({
       imagePaths: images,
       audioPath,
@@ -46,6 +56,7 @@ export async function runPipeline(options = {}) {
     result.videoPath = outputPath;
     result.ffmpeg = videoInfo;
 
+    // 7. Log performance
     await logPerformance({
       status: "success",
       startedAt,
