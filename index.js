@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import { exec } from "child_process";
 import express from "express";
 import { runPipeline } from "./src/pipeline.js";
 import { runTrendEngine } from "./src/trends/trendEngine_v1.js";
