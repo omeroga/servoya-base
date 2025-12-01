@@ -1,5 +1,5 @@
 import { getTrendV1 } from "./trends/trendEngine_v1.js";
-import { mapTrendToProduct } from "./productMapper_v1.js";
+import { resolveKeepaProduct } from "./keepa/resolveKeepaProduct_v1.js"; 
 import { generateScript } from "./scriptEngine_v1.js";
 import { fetchImages } from "./imageFetcher_v1.js";
 import { fetchAudio } from "./audioFetcher_v1.js";
@@ -12,9 +12,16 @@ export async function runPipeline(options = {}) {
   try {
     // 1. Fetch trend
     const trend = await getTrendV1(options);
+    if (!trend || !trend.title) {
+      throw new Error("Trend engine returned empty trend");
+    }
 
-    // 2. Map trend to product info
-    const mapping = mapTrendToProduct(trend.title);
+    // 2. Map trend to Amazon product using Keepa
+    const mapping = await resolveKeepaProduct(trend.title);
+
+    if (!mapping) {
+      throw new Error("No matching Amazon product found for: " + trend.title);
+    }
 
     // 3. Generate script
     const script = await generateScript({ trend, mapping });
