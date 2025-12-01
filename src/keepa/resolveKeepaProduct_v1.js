@@ -1,15 +1,12 @@
-import { searchKeepaProducts } from "./searchKeepa_v1.js";
+import { searchKeepaProduct } from "./searchKeepa_v1.js";
 
 export async function resolveKeepaProduct(keyword) {
   try {
-    const results = await searchKeepaProducts(keyword);
+    const p = await searchKeepaProduct(keyword);
 
-    if (!results || results.length === 0) {
+    if (!p) {
       return null;
     }
-
-    // ניקח את התוצאה הכי טובה
-    const p = results[0];
 
     return {
       asin: p.asin || null,
@@ -18,7 +15,6 @@ export async function resolveKeepaProduct(keyword) {
       images: p.images || [],
       price: p.price || null
     };
-
   } catch (err) {
     console.error("Keepa resolve error:", err.message);
     return null;
