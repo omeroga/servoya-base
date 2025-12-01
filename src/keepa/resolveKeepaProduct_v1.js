@@ -1,28 +1,19 @@
-import { searchKeepaProducts } from "./searchKeepa_v1.js";
+import { searchKeepaProduct } from "./searchKeepa_v1.js";
 
-// לוקח תוצאה אחת טובה מתוך הרשימה
 export async function resolveKeepaProduct(keyword) {
   try {
-    const results = await searchKeepaProducts(keyword);
+    const product = await searchKeepaProduct(keyword);
 
-    if (!results || results.length === 0) {
+    if (!product) {
       return null;
     }
 
-    // בחירה של מוצר עם דירוג טוב (fallback: הראשון)
-    const sorted =
-      results.sort((a, b) => (a.rating || 0) - (b.rating || 0));
-
-    const p = sorted[0];
-
     return {
-      asin: p.asin,
-      title: p.title || keyword,
-      brand: p.brand || null,
-      images: p.images || [],
-      price: p.price || null,
-      rating: p.rating || null,
-      salesRank: p.salesRank || null
+      asin: product.asin || null,
+      title: product.title || keyword,
+      brand: product.brand || null,
+      images: product.images || [],
+      price: product.price || null,
     };
   } catch (err) {
     console.error("Keepa resolve error:", err.message);
