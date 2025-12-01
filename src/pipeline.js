@@ -1,3 +1,5 @@
+// src/pipeline.js
+
 import { getTrendV1 } from "./trends/trendEngine_v1.js";
 import { resolveKeepaProduct } from "./keepa/resolveKeepaProduct_v1.js";
 import { generateScript } from "./scriptEngine_v1.js";
@@ -10,10 +12,16 @@ export async function runPipeline(options = {}) {
   const startedAt = new Date().toISOString();
 
   try {
-    // 1. Trend
-    const trend = await getTrendV1(options);
+    // --- 1. Always ensure we have a valid trend ---
+    const trend = options.trend
+      ? options.trend
+      : await getTrendV1(options);
 
-    // 2. מוצר מ-Keepa לפי הטרנד
+    if (!trend || !trend.title) {
+      throw new Error("Trend engine did not return a valid trend");
+    }
+
+    // --- 2. Keepa product ---
     const product = await resolveKeepaProduct(trend.title);
 
     if (!product) {
@@ -25,10 +33,10 @@ export async function runPipeline(options = {}) {
       throw new Error("No product found on Keepa");
     }
 
-    // 3. Script
+    // --- 3. Script generation ---
     const script = await generateScript({ trend, product });
 
-    // 4. Media
+    // --- 4. Media fetching ---
     const images = await fetchImages({ product });
     const audioPath = await fetchAudio({ trend, product });
 
@@ -41,7 +49,7 @@ export async function runPipeline(options = {}) {
       return { trend, product, script, images, audioPath };
     }
 
-    // 5. Video
+    // --- 5. Build video ---
     const outputPath = `./output/servoya_${Date.now()}.mp4`;
 
     const videoInfo = await buildVideoFFMPEG({
@@ -51,6 +59,7 @@ export async function runPipeline(options = {}) {
       durationPerImage: 2.0
     });
 
+    // --- 6. Success log ---
     await logPerformance({
       status: "success",
       startedAt,
