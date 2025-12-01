@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import { runPipeline } from "./src/pipeline.js";
+import { runTrendEngine } from "./src/trends/trendEngine_v1.js";
 
 const app = express();
 app.use(express.json());
@@ -14,6 +15,17 @@ app.post("/webhook/github", (req, res) => {
 // Healthcheck
 app.get("/health", (req, res) => {
   res.json({ ok: true, status: "Servoya base backend online" });
+});
+
+// ▶️ Run Trend Engine manually
+app.post("/run-trends", async (req, res) => {
+  try {
+    const result = await runTrendEngine();
+    res.json({ ok: true, trends: result });
+  } catch (err) {
+    console.error("❌ Trend Engine API error:", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // יצירת וידאו
