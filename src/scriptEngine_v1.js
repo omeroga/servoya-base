@@ -1,34 +1,13 @@
 // src/scriptEngine_v1.js
+// גרסה יציבה וללא תלות ב-mapping
 
 export async function generateScript({ trend, product }) {
-  if (!trend || !product) {
-    throw new Error("Missing trend or product for script generation");
-  }
+  const title = trend?.title || "Trending Product";
+  const category = trend?.category || "general";
 
-  const title = trend.title;
-  const category = trend.category || "general";
-  const brand = product.brand || "";
-  const asin = product.asin || "";
-
-  const hook =
-    category === "beauty"
-      ? `Stop scrolling if you want glowing, healthy skin.`
-      : category === "self_improvement"
-      ? `Trying to level up your daily habits? This one is going viral.`
-      : category === "pets"
-      ? `Pet owners, you need to see this.`
-      : category === "gadgets"
-      ? `If you love smart gadgets, pay attention.`
-      : `Trending product you should see.`;
-
-  const body =
-    `Today's viral item: ${title}.` +
-    (brand ? ` Made by ${brand}.` : "") +
-    ` Perfect for anyone interested in ${category.replace("_", " ")}.` +
-    ` People love it because it's practical and trending.`
-
-  const cta =
-    `Tap the link in bio to see reviews and check the current price. (ASIN: ${asin})`;
+  const hook = `Stop scrolling if you care about ${category}!`;
+  const body = `This product is trending right now: ${title}. It solves a real problem and people love it.`;
+  const cta = "Tap the link in bio to see current price and reviews.";
 
   return {
     hook,
