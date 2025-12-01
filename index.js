@@ -1,9 +1,10 @@
 import dotenv from "dotenv";
-dotenv.config();
+dotenv.config({ override: true });
 
 import express from "express";
 import { runPipeline } from "./src/pipeline.js";
 import { runTrendEngine } from "./src/trends/trendEngine_v1.js";
+import { exec } from "child_process";
 
 const app = express();
 app.use(express.json());
@@ -42,8 +43,6 @@ app.post("/api/generate/video", async (req, res) => {
   }
 });
 
-import { exec } from "child_process";
-
 // GitHub Webhook for deploy
 app.post("/deploy", (req, res) => {
   exec("bash /root/servoya/deploy.sh", (error, stdout, stderr) => {
@@ -51,12 +50,16 @@ app.post("/deploy", (req, res) => {
       console.error(`Deploy error: ${error.message}`);
       return res.status(500).send("Deploy failed");
     }
+    if (stderr) {
+      console.error(`Deploy stderr: ${stderr}`);
+    }
     console.log(stdout);
     res.send("Deploy complete");
   });
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 80;
+
 app.listen(PORT, () => {
   console.log(`Servoya base listening on port ${PORT}`);
 });
