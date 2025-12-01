@@ -1,5 +1,4 @@
 // index.js - clean version, no RTL characters
-
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -8,6 +7,7 @@ import express from "express";
 
 import { runPipeline } from "./src/pipeline.js";
 import { runTrendEngine } from "./src/trends/trendEngine_v1.js";
+import { searchKeepaProduct } from "./src/keepa/searchKeepa_v1.js";
 
 const app = express();
 app.use(express.json());
@@ -30,6 +30,22 @@ app.post("/run-trends", async (req, res) => {
     res.json({ ok: true, trends: result });
   } catch (err) {
     console.error("Trend Engine API error:", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// TEST KEPA ROUTE
+app.post("/test-keepa", async (req, res) => {
+  try {
+    const { keyword } = req.body;
+    if (!keyword) {
+      return res.status(400).json({ ok: false, error: "Missing keyword" });
+    }
+
+    const product = await searchKeepaProduct(keyword);
+    res.json({ ok: true, product });
+  } catch (err) {
+    console.error("Keepa test error:", err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
@@ -62,6 +78,7 @@ app.post("/deploy", (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
+
 app.listen(PORT, () => {
   console.log(`Servoya base listening on port ${PORT}`);
 });
