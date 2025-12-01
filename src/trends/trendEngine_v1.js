@@ -1,35 +1,47 @@
+// Trend Engine v1
+// Orchestrates: Keepa fetch → Processing → Saving
+
 import { fetchKeepaTrends } from "./fetchKeepaTrends_v1.js";
-import { processTrends } from "./trendProcessor_v1.js";
+import { processKeepaProducts } from "./trendProcessor_v1.js";
 import { saveTrends } from "./trendSaver_v1.js";
 
-// ריצה מלאה - מביא טרנדים, מעבד, שומר בבסיס
-export async function runTrends(options = {}) {
-  const startedAt = new Date().toISOString();
+export async function runTrendEngine() {
+  console.log("🚀 Running Trend Engine v1...");
 
-  // 1. משיכה מ־Keepa
-  const rawTrends = await fetchKeepaTrends(options);
+  try {
+    // 1. Fetch trending products from Keepa
+    const products = await fetchKeepaTrends();
 
-  // 2. עיבוד לטרנדים נקיים
-  const processedTrends = processTrends(rawTrends, options);
+    if (!products || products.length === 0) {
+      console.log("⚠️ No products returned from Keepa.");
+      return [];
+    }
 
-  // 3. שמירה ב־Supabase
-  await saveTrends(processedTrends, { startedAt });
+    // 2. Process into clean keyword list
+    const keywords = processKeepaProducts(products);
 
-  return {
-    raw: rawTrends,
-    processed: processedTrends,
-    savedAt: startedAt
-  };
+    if (!keywords || keywords.length === 0) {
+      console.log("⚠️ No keywords processed.");
+      return [];
+    }
+
+    console.log(`✨ Processed ${keywords.length} keywords from Keepa products.`);
+
+    // 3. Save to Supabase
+    const saved = await saveTrends(keywords);
+
+    console.log("🏁 Trend Engine v1 completed.");
+    return saved;
+
+  } catch (err) {
+    console.error("❌ Trend Engine error:", err);
+    return [];
+  }
 }
 
-// פונקציה שה־pipeline משתמש בה - מחזירה טרנד אחד "מנצח"
+// === Export for pipeline ===
+// Pipeline expects getTrendV1 → return ONE trend object
 export async function getTrendV1(options = {}) {
-  const { processed } = await runTrends(options);
-
-  if (!processed || processed.length === 0) {
-    throw new Error("No trends found in Trend Engine v1");
-  }
-
-  // לעכשיו ניקח את הראשון ברשימה
-  return processed[0];
+  const list = await runTrendEngine();
+  return list?.[0] || null;
 }
