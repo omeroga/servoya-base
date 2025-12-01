@@ -1,11 +1,14 @@
 // trendEngine_v1.js
-// Dynamic Trend Engine v1 – upgraded version
-// Google Trends + Reddit API (token optional) + TikTok API (token optional) + Fallback
+// Dynamic Trend Engine v1 – CTO edition
+// Purpose: maximize monetizable product trends for daily video generation
+// Sources: Google Trends, Reddit, TikTok, Keepa API, Static fallback
 // Categories: beauty, gadgets, pets, self_improvement, relationships
 
 import fetch from "node-fetch";
 
-// ===== Static fallback =====
+// ===============================
+// STATIC FALLBACK (safety net)
+// ===============================
 const FALLBACK_KEYWORDS = {
   beauty: [
     "vitamin c face serum",
@@ -44,161 +47,166 @@ const FALLBACK_KEYWORDS = {
   ]
 };
 
-// ===== Utilities =====
+// ===============================
+// HELPERS
+// ===============================
 function randomPick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function isProductRelevant(str) {
-  if (!str) return false;
-
-  const banned = [
-    "trump", "biden", "news", "football", "nba",
-    "police", "war", "election", "celebrity",
-    "crime", "politics", "covid"
-  ];
+  const banned = ["trump", "biden", "news", "football", "nba", "police", "war", "election", "celebrity"];
   return !banned.some(b => str.toLowerCase().includes(b));
 }
 
-// Global headers to bypass bot-protection
-const BROWSER_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-  "Accept": "application/json,text/html,*/*",
-  "Accept-Language": "en-US,en;q=0.9"
-};
+function detectCategory(keyword) {
+  const lower = keyword.toLowerCase();
+  if (lower.includes("serum") || lower.includes("skin") || lower.includes("cream")) return "beauty";
+  if (lower.includes("journal") || lower.includes("habit") || lower.includes("planner")) return "self_improvement";
+  if (lower.includes("dog") || lower.includes("cat") || lower.includes("pet")) return "pets";
+  if (lower.includes("projector") || lower.includes("charger") || lower.includes("smart")) return "gadgets";
+  return "relationships";
+}
 
-// ===== Google Trends (public scrape) =====
+// ===============================
+// GOOGLE TRENDS
+// ===============================
 async function fetchGoogleTrends() {
   try {
-    const res = await fetch(
-      "https://trends.google.com/trends/api/dailytrends?hl=en-US&geo=US&ns=15",
-      { headers: BROWSER_HEADERS }
-    );
-
+    const res = await fetch("https://trends.google.com/trends/api/dailytrends?hl=en-US&geo=US&ns=15");
     const raw = await res.text();
     const json = JSON.parse(raw.replace(")]}',", ""));
 
     const items = json.default.trendingSearchesDays[0].trendingSearches;
-
-    const titles = items
-      .map(item => item.title.query)
-      .filter(isProductRelevant);
-
-    return titles.slice(0, 20);
-  } catch (e) {
+    return items.map(i => i.title.query).filter(isProductRelevant).slice(0, 20);
+  } catch {
     return [];
   }
 }
 
-// ===== Reddit API (token optional) =====
+// ===============================
+// REDDIT TRENDS
+// ===============================
+const REDDIT_SUBS = {
+  beauty: ["beauty", "SkincareAddiction"],
+  gadgets: ["gadgets", "BuyItForLife"],
+  pets: ["petproducts", "dogs"],
+  self_improvement: ["selfimprovement", "getdisciplined"],
+  relationships: ["relationships", "dating_advice"]
+};
+
 async function fetchRedditTrends(category) {
   try {
-    const subs = {
-      beauty: ["beauty", "SkincareAddiction", "MakeupAddiction"],
-      gadgets: ["gadgets", "BuyItForLife", "tech"],
-      pets: ["petproducts", "dogs", "cats"],
-      self_improvement: ["selfimprovement", "getdisciplined"],
-      relationships: ["relationships", "dating_advice"]
-    }[category] || [];
-
+    const subs = REDDIT_SUBS[category] || [];
     const collected = [];
-
-    const authHeaders = process.env.REDDIT_TOKEN
-      ? { Authorization: `Bearer ${process.env.REDDIT_TOKEN}` }
-      : {};
-
     for (const sub of subs) {
-      const res = await fetch(
-        `https://www.reddit.com/r/${sub}/hot.json?limit=20`,
-        { headers: { ...BROWSER_HEADERS, ...authHeaders } }
-      );
-
+      const res = await fetch(`https://www.reddit.com/r/${sub}/hot.json?limit=20`);
       const json = await res.json();
-
-      const titles = json.data.children
-        .map(p => p.data.title)
-        .filter(isProductRelevant);
-
+      const titles = json.data.children.map(c => c.data.title).filter(isProductRelevant);
       collected.push(...titles);
     }
-
     return collected.slice(0, 20);
   } catch {
     return [];
   }
 }
 
-// ===== TikTok Trends (token optional) =====
+// ===============================
+// TIKTOK DISCOVER
+// ===============================
 async function fetchTikTokTrends() {
   try {
-    const headers = { ...BROWSER_HEADERS };
-
-    if (process.env.TIKTOK_TOKEN) {
-      headers["Authorization"] = `Bearer ${process.env.TIKTOK_TOKEN}`;
-    }
-
-    const res = await fetch(
-      "https://www.tiktok.com/api/discover/item_list/?region=US",
-      { headers }
-    );
-
+    const res = await fetch("https://www.tiktok.com/api/discover/item_list/?region=US");
     const json = await res.json();
-
-    const items = json?.itemList || [];
-
-    return items
-      .map(i => i?.desc || "")
-      .filter(isProductRelevant)
-      .slice(0, 20);
+    return (json?.itemList || []).map(i => i.desc || "").filter(isProductRelevant).slice(0, 20);
   } catch {
     return [];
   }
 }
 
-// ===== Category detection =====
-function detectCategory(keyword) {
-  const k = keyword.toLowerCase();
+// ===============================
+// KEEPAA MEGA SOURCE
+// ===============================
+async function fetchKeepaTrends() {
+  try {
+    const apiKey = process.env.KEEPA_API_KEY;
+    const url = `https://api.keepa.com/marketplace?domain=1&apikey=${apiKey}`;
+    const res = await fetch(url);
+    const json = await res.json();
 
-  if (k.includes("serum") || k.includes("skin") || k.includes("cream")) return "beauty";
-  if (k.includes("journal") || k.includes("habit") || k.includes("planner")) return "self_improvement";
-  if (k.includes("dog") || k.includes("cat") || k.includes("pet")) return "pets";
-  if (k.includes("projector") || k.includes("charger") || k.includes("smart")) return "gadgets";
-  return "relationships";
+    if (!json?.marketplaceOffers) return [];
+
+    // Convert ASINS + Titles to trend candidates
+    const products = json.marketplaceOffers
+      .slice(0, 50)
+      .map(p => p.title || "")
+      .filter(isProductRelevant);
+
+    return products;
+  } catch {
+    return [];
+  }
 }
 
-// ===== MAIN ENGINE =====
+// ===============================
+// TREND RANK SCORING ENGINE
+// ===============================
+function rankTrends(google, tiktok, reddit, keepa) {
+  const score = new Map();
+
+  const add = (list, value) => {
+    list.forEach(k => {
+      const key = k.toLowerCase();
+      score.set(key, (score.get(key) || 0) + value);
+    });
+  };
+
+  add(google, 3);
+  add(tiktok, 2);
+  add(reddit, 2);
+  add(keepa, 5); // MOST IMPORTANT – real buying demand
+
+  return [...score.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([keyword]) => keyword);
+}
+
+// ===============================
+// MAIN ENGINE
+// ===============================
 export async function getTrendV1(options = {}) {
   const categoryKeys = Object.keys(FALLBACK_KEYWORDS);
-  const userCat = options.category || randomPick(categoryKeys);
+  const userCategory = options.category;
 
-  const [google, reddit, tiktok] = await Promise.all([
+  // Pull from all sources in parallel
+  const [google, tiktok, reddit, keepa] = await Promise.all([
     fetchGoogleTrends(),
-    fetchRedditTrends(userCat),
-    fetchTikTokTrends()
+    fetchTikTokTrends(),
+    fetchRedditTrends(userCategory || randomPick(categoryKeys)),
+    fetchKeepaTrends()
   ]);
 
-  const merged = [...google, ...reddit, ...tiktok]
-    .map(s => s.trim())
-    .filter(isProductRelevant);
+  const ranked = rankTrends(google, tiktok, reddit, keepa);
 
-  let keyword = merged.length ? randomPick(merged) : null;
+  let keyword = ranked.length > 0 ? ranked[0] : null;
 
   if (!keyword) {
-    const fb = randomPick(FALLBACK_KEYWORDS[userCat]);
-    return { category: userCat, keyword: fb, title: fb };
+    const cat = userCategory || randomPick(categoryKeys);
+    keyword = randomPick(FALLBACK_KEYWORDS[cat]);
+    return { category: cat, keyword, title: keyword };
   }
 
-  const detectedCategory = detectCategory(keyword);
+  const category = userCategory || detectCategory(keyword);
 
   return {
-    category: detectedCategory,
+    category,
     keyword,
     title: keyword
   };
 }
 
-// Debug endpoint
+// Debug version
 export async function runTrendEngine() {
-  return [await getTrendV1()];
+  const trend = await getTrendV1();
+  return [trend];
 }
