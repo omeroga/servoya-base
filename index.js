@@ -1,6 +1,6 @@
 // index.js
 import express from "express";
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
 import { runFullPipeline } from "./src/pipeline.js";
 
 dotenv.config();
@@ -8,15 +8,43 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
+// Health check
 app.get("/health", (req, res) => {
   res.json({ ok: true, status: "Servoya base backend online" });
 });
 
+// Main full pipeline endpoint
 app.post("/api/generate/full", async (req, res) => {
-  const result = await runFullPipeline();
-  res.json(result);
+  try {
+    const options = req.body || {};
+    const result = await runFullPipeline(options);
+    res.json({ ok: true, result });
+  } catch (err) {
+    console.error("❌ Pipeline error at /api/generate/full:", err);
+    res.status(500).json({
+      ok: false,
+      error: err.message || "Pipeline failed",
+    });
+  }
 });
 
-app.listen(8080, () => {
-  console.log("Servoya Base running on port 8080");
+// Backward compatible video endpoint
+app.post("/api/generate/video", async (req, res) => {
+  try {
+    const options = req.body || {};
+    const result = await runFullPipeline(options);
+    res.json({ ok: true, result });
+  } catch (err) {
+    console.error("❌ Pipeline error at /api/generate/video:", err);
+    res.status(500).json({
+      ok: false,
+      error: err.message || "Pipeline failed",
+    });
+  }
+});
+
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, () => {
+  console.log(`Servoya base listening on port ${PORT}`);
 });
