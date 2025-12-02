@@ -1,9 +1,22 @@
+// src/imageEngine/imageFetcher_fallbackAmazon_v1.js
 import fetch from "node-fetch";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
-export async function fallbackAmazonImages(asin, tempDir) {
+// Proper dirname for ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export async function fetchFallbackAmazon(asin) {
   try {
+    // Create local temp folder
+    const tempDir = path.join(__dirname, "../../temp_images");
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    // Fallback URLs
     const imgUrls = [
       `https://images-na.ssl-images-amazon.com/images/P/${asin}.01.MAIN.jpg`,
       `https://images-na.ssl-images-amazon.com/images/P/${asin}.02.jpg`,
@@ -18,20 +31,22 @@ export async function fallbackAmazonImages(asin, tempDir) {
 
     for (let i = 0; i < imgUrls.length; i++) {
       const url = imgUrls[i];
-      const file = path.join(tempDir, `fallback_${i}.jpg`);
+      const filePath = path.join(tempDir, `${asin}_fallback_${i}.jpg`);
 
       const res = await fetch(url);
       if (!res.ok) continue;
 
-      const buf = Buffer.from(await res.arrayBuffer());
-      fs.writeFileSync(file, buf);
-      result.push(file);
+      const buffer = Buffer.from(await res.arrayBuffer());
+      fs.writeFileSync(filePath, buffer);
+
+      result.push(filePath);
 
       if (result.length >= 7) break;
     }
 
     return result;
-  } catch {
+  } catch (err) {
+    console.log("Fallback Amazon error:", err.message);
     return [];
   }
 }

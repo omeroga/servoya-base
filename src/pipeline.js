@@ -1,43 +1,66 @@
 // src/pipeline.js
+import { fetchPrimaryImages } from "./imageEngine/imageFetcher_primary_v1.js";
 import { fetchProductImages } from "./imageEngine/imageFetcher_v1.js";
-import { fetchPrimaryImage } from "./imageEngine/imageFetcher_primary_v1.js";
-import { fetchFallbackAmazon } from "./imageEngine/imageFetcher_fallbackAmazon_v1.js";
+import { fallbackAmazonImages } from "./imageEngine/imageFetcher_fallbackAmazon_v1.js";
 import { generateFinalVideo } from "./videoEngine_v1.js";
 import { mapProduct } from "./productMapper_v1.js";
 import { fetchProductAudio } from "./audioFetcher_v1.js";
+
+import fs from "fs";
+import path from "path";
 
 export async function runFullPipeline() {
   try {
     console.log("🔵 Pipeline started");
 
+    // 1. Pick product
     const mapped = await mapProduct();
     console.log("🟣 Product mapped:", mapped);
 
-    const primaryImage = await fetchPrimaryImage(mapped);
-    console.log("🟢 Primary image:", primaryImage);
+    const asin = mapped.asin;
+    if (!asin) throw new Error("ASIN missing from mapped product");
 
-    const imageList = await fetchProductImages(mapped);
-    console.log("🟡 Image list:", imageList);
+    // Create temp folder
+    const tempDir = path.resolve("temp_images");
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-    let imagesToUse = imageList;
+    // 2. Primary images
+    const primary = await fetchPrimaryImages(asin, tempDir);
+    console.log("🟢 Primary images:", primary);
 
-    if (!imageList || imageList.length === 0) {
-      console.log("⚠️ No images from primary source, using fallback Amazon");
-      const fallback = await fetchFallbackAmazon(mapped.asin);
-      imagesToUse = [fallback];
+    // 3. Gallery images from mapped URLs (if exist)
+    let gallery = [];
+    if (mapped.images && mapped.images.length > 0) {
+      gallery = await fetchProductImages(mapped.images, asin);
+    }
+    console.log("🟡 Gallery images:", gallery);
+
+    // Merge
+    let finalImages = [...primary, ...gallery];
+
+    // 4. Fallback only if needed
+    if (finalImages.length === 0) {
+      console.log("⚠️ Using Amazon fallback images");
+      finalImages = await fallbackAmazonImages(asin, tempDir);
     }
 
+    if (finalImages.length === 0) {
+      throw new Error("No images found from any source");
+    }
+
+    // 5. Audio
     const audioPath = await fetchProductAudio(mapped);
     console.log("🔊 Audio OK:", audioPath);
 
-    const videoPath = await generateFinalVideo(imagesToUse, audioPath);
+    // 6. Final video
+    const videoPath = await generateFinalVideo(finalImages, audioPath);
     console.log("🎬 Video generated:", videoPath);
 
     return {
       ok: true,
-      video: videoPath
+      video: videoPath,
+      asin
     };
-
   } catch (err) {
     console.error("❌ Pipeline error:", err);
     return { ok: false, error: err.message };
