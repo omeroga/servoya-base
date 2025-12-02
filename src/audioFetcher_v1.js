@@ -1,18 +1,18 @@
-import fs from "fs";
-import path from "path";
+// src/audioFetcher_v1.js
+import { supabase } from "./supabaseClient.js";
 
-export async function fetchAudio({ trend, mapping }) {
-  const base = new URL("..", import.meta.url).pathname;
-  const folder = path.join(base, "assets", "audio", mapping.niche || "general");
+export async function getAudioForCategory(category) {
+  const folder = "general"; // later per category
 
-  if (!fs.existsSync(folder)) {
-    console.warn("Audio folder not found:", folder);
-    return null;
+  const { data, error } = await supabase.storage
+    .from("audio")
+    .list(folder);
+
+  if (error || !data || data.length === 0) {
+    return "assets/audio/general/track1.mp3";
   }
 
-  const files = fs.readdirSync(folder)
-    .filter(f => f.match(/\.(mp3|wav|m4a)$/i))
-    .map(f => path.join(folder, f));
+  const random = data[Math.floor(Math.random() * data.length)].name;
 
-  return files[0] || null;
+  return `assets/audio/general/${random}`;
 }

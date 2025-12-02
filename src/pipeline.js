@@ -1,49 +1,61 @@
-// pipeline.js – CTO Edition
-// Full pipeline: Trend → Script → Output
-// No video/audio yet (שלב הבא), זה מנוע ה-Text המלא
-
+// src/pipeline.js
 import { getTrendV1 } from "./trends/trendEngine_v1.js";
+import { searchKeepa } from "./keepa/searchKeepa_v1.js";
+import { resolveKeepaProduct } from "./keepa/resolveKeepaProduct_v1.js";
+import { fetchProductImages } from "./imageFetcher_v1.js";
+import { getAudioForCategory } from "./audioFetcher_v1.js";
 import { generateScript } from "./scriptEngine_v1.js";
+import { generateVideo } from "./videoEngine_v1.js";
+import { logPerformance } from "./performanceLogger_v1.js";
 
-export async function runPipeline(options = {}) {
+export async function runFullPipeline() {
   try {
-    console.log("🚀 Pipeline starting");
+    // 1. Trend
+    const trend = await getTrendV1();
 
-    // ====== STEP 1: Get Trend ======
-    const trend = await getTrendV1({
-      category: options.category || null
-    });
+    // 2. Keepa Search
+    const keepaResults = await searchKeepa(trend.keyword);
+    const asin = keepaResults[0].asin;
 
-    if (!trend || !trend.keyword) {
-      throw new Error("Trend Engine returned no keyword");
-    }
+    // 3. Keepa Product Details
+    const product = await resolveKeepaProduct(asin);
 
-    console.log("🔥 Trend selected:", trend);
+    // 4. Images
+    const localImages = await fetchProductImages(product.images, asin);
 
-    // ====== STEP 2: Create Script ======
+    // 5. Audio
+    const audio = await getAudioForCategory(trend.category);
+
+    // 6. Script
     const script = await generateScript({
-      category: trend.category,
-      keyword: trend.keyword
+      title: product.title,
+      category: trend.category
     });
 
-    if (!script) {
-      throw new Error("Script Engine returned empty script");
-    }
+    // 7. Video
+    const finalVideo = await generateVideo(
+      localImages,
+      audio,
+      script.title,
+      script.cta
+    );
 
-    console.log("📝 Script generated");
+    // 8. Logging
+    await logPerformance({
+      asin,
+      keyword: trend.keyword,
+      video_path: finalVideo,
+      category: trend.category
+    });
 
-    // ====== FINAL OUTPUT ======
     return {
       ok: true,
-      trend,
-      script
+      asin,
+      keyword: trend.keyword,
+      video: finalVideo
     };
-
   } catch (err) {
-    console.error("❌ Pipeline error:", err);
-    return {
-      ok: false,
-      error: err.message
-    };
+    console.log("Pipeline error:", err);
+    return { ok: false, error: err.message };
   }
 }
