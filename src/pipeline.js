@@ -1,61 +1,45 @@
 // src/pipeline.js
-import { getTrendV1 } from "./trends/trendEngine_v1.js";
-import { searchKeepa } from "./keepa/searchKeepa_v1.js";
-import { resolveKeepaProduct } from "./keepa/resolveKeepaProduct_v1.js";
-import { fetchProductImages } from "./imageFetcher_v1.js";
-import { getAudioForCategory } from "./audioFetcher_v1.js";
-import { generateScript } from "./scriptEngine_v1.js";
-import { generateVideo } from "./videoEngine_v1.js";
-import { logPerformance } from "./performanceLogger_v1.js";
+import { fetchProductImages } from "./imageEngine/imageFetcher_v1.js";
+import { fetchPrimaryImage } from "./imageEngine/imageFetcher_primary_v1.js";
+import { fetchFallbackAmazon } from "./imageEngine/imageFetcher_fallbackAmazon_v1.js";
+import { generateFinalVideo } from "./videoEngine_v1.js";
+import { mapProduct } from "./productMapper_v1.js";
+import { fetchProductAudio } from "./audioFetcher_v1.js";
 
 export async function runFullPipeline() {
   try {
-    // 1. Trend
-    const trend = await getTrendV1();
+    console.log("🔵 Pipeline started");
 
-    // 2. Keepa Search
-    const keepaResults = await searchKeepa(trend.keyword);
-    const asin = keepaResults[0].asin;
+    const mapped = await mapProduct();
+    console.log("🟣 Product mapped:", mapped);
 
-    // 3. Keepa Product Details
-    const product = await resolveKeepaProduct(asin);
+    const primaryImage = await fetchPrimaryImage(mapped);
+    console.log("🟢 Primary image:", primaryImage);
 
-    // 4. Images
-    const localImages = await fetchProductImages(product.images, asin);
+    const imageList = await fetchProductImages(mapped);
+    console.log("🟡 Image list:", imageList);
 
-    // 5. Audio
-    const audio = await getAudioForCategory(trend.category);
+    let imagesToUse = imageList;
 
-    // 6. Script
-    const script = await generateScript({
-      title: product.title,
-      category: trend.category
-    });
+    if (!imageList || imageList.length === 0) {
+      console.log("⚠️ No images from primary source, using fallback Amazon");
+      const fallback = await fetchFallbackAmazon(mapped.asin);
+      imagesToUse = [fallback];
+    }
 
-    // 7. Video
-    const finalVideo = await generateVideo(
-      localImages,
-      audio,
-      script.title,
-      script.cta
-    );
+    const audioPath = await fetchProductAudio(mapped);
+    console.log("🔊 Audio OK:", audioPath);
 
-    // 8. Logging
-    await logPerformance({
-      asin,
-      keyword: trend.keyword,
-      video_path: finalVideo,
-      category: trend.category
-    });
+    const videoPath = await generateFinalVideo(imagesToUse, audioPath);
+    console.log("🎬 Video generated:", videoPath);
 
     return {
       ok: true,
-      asin,
-      keyword: trend.keyword,
-      video: finalVideo
+      video: videoPath
     };
+
   } catch (err) {
-    console.log("Pipeline error:", err);
+    console.error("❌ Pipeline error:", err);
     return { ok: false, error: err.message };
   }
 }
