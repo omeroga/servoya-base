@@ -13,6 +13,7 @@ yarn-error.log*
 output/
 dist/
 temp/
+.tmp.driveupload/
 
 # System files
 .DS_Store
