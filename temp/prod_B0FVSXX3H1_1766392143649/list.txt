@@ -1,0 +1,7 @@
+file 'C:/servoya-base/temp/prod_B0FVSXX3H1_1766392143649/clip_0.mp4'
+file 'C:/servoya-base/temp/prod_B0FVSXX3H1_1766392143649/clip_1.mp4'
+file 'C:/servoya-base/temp/prod_B0FVSXX3H1_1766392143649/clip_2.mp4'
+file 'C:/servoya-base/temp/prod_B0FVSXX3H1_1766392143649/clip_3.mp4'
+file 'C:/servoya-base/temp/prod_B0FVSXX3H1_1766392143649/clip_4.mp4'
+file 'C:/servoya-base/temp/prod_B0FVSXX3H1_1766392143649/clip_5.mp4'
+file 'C:/servoya-base/temp/prod_B0FVSXX3H1_1766392143649/clip_6.mp4'

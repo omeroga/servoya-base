@@ -1,0 +1,5 @@
+
+
+=== 2025-12-22T08:13:07.516Z ===
+ffmpeg -loop 1 -t 2.142857142857143 -i C:\servoya-base\temp\prod_B0FVSXX3H1_1766391185024\img_0.jpg -y -filter:v split=2[bg][fg],[bg]scale=w=1080:h=1920:force_original_aspect_ratio=increase[bg_scaled],[bg_scaled]crop=w=1080:h=1920[bg_cropped],[bg_cropped]boxblur=20:5[bg_blur],[fg]scale=w=1080:h=1080:force_original_aspect_ratio=decrease[fg_scaled],[fg_scaled]pad=w=1080:h=1080:x=(ow-iw)/2:y=(oh-ih)/2[fg_padded],[bg_blur][fg_padded]overlay=x=(W-w)/2:y=(H-h)/2[composed],[composed]drawtext=fontfile=C\:/servoya-base/temp/prod_B0FVSXX3H1_1766391185024/font.ttf:text=SPICE UP YOUR MEALS
+TODAY!:fontsize=70:fontcolor=yellow:box=1:boxcolor=black@0.85:boxborderw=30:x=(w-text_w)/2:y=h*0.12[with_text],[with_text]fade=t=in:st=0:d=0.2[fade_in],[fade_in]fade=t=out:st=1.9428571428571428:d=0.2 -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -r 30 C:\servoya-base\temp\prod_B0FVSXX3H1_1766391185024\clip_0.mp4

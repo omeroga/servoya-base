@@ -1,0 +1,6 @@
+file 'C:/servoya-base/temp/B0F8XHHRWG_1766132437023/clip_0_0.mp4'
+file 'C:/servoya-base/temp/B0F8XHHRWG_1766132437023/clip_0_1.mp4'
+file 'C:/servoya-base/temp/B0F8XHHRWG_1766132437023/clip_1_0.mp4'
+file 'C:/servoya-base/temp/B0F8XHHRWG_1766132437023/clip_1_1.mp4'
+file 'C:/servoya-base/temp/B0F8XHHRWG_1766132437023/clip_2_0.mp4'
+file 'C:/servoya-base/temp/B0F8XHHRWG_1766132437023/clip_2_1.mp4'

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Servoya | Amazon Finds</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: #1a1a1a;
+            --text-color: #ffffff;
+            --accent-color: #FFD700; /* Yellow Highlighter Color */
+            --accent-text: #000000;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- Header & Search --- */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            z-index: 100;
+            border-bottom: 1px solid #333;
+            text-align: center;
+        }
+
+        .logo {
+            font-weight: 800;
+            font-size: 1.5rem;
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+            display: block;
+            color: white;
+            text-decoration: none;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        #code-input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid var(--accent-color);
+            background: #222;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            outline: none;
+        }
+
+        #code-input::placeholder {
+            color: #888;
+        }
+
+        #go-btn {
+            background-color: var(--accent-color);
+            color: var(--accent-text);
+            border: none;
+            padding: 0 20px;
+            border-radius: 8px;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* --- Filters / Tags --- */
+        .niche-tag {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 4px 12px;
+            background: #333;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        /* --- Product Grid --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2 columns on mobile */
+            gap: 10px;
+        }
+
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: repeat(4, 1fr); /* 4 columns on desktop */
+                gap: 20px;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .card:active {
+            transform: scale(0.98);
+        }
+
+        .card-image-container {
+            position: relative;
+            width: 100%;
+            padding-top: 100%; /* 1:1 Aspect Ratio (Square) */
+            background: #000;
+        }
+
+        .card-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* חותך את התמונה שתתאים לריבוע */
+        }
+
+        .code-badge {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background: var(--accent-color);
+            color: var(--accent-text);
+            font-weight: 800;
+            padding: 2px 6px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+        }
+
+        .card-content {
+            padding: 10px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            line-height: 1.3;
+            margin-bottom: 5px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            color: #ddd;
+        }
+
+        .card-cta {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .loader {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header class="sticky-header">
+        <a href="/" class="logo">SERVOYA</a>
+        
+        <div class="search-container">
+            <input type="number" id="code-input" placeholder="Enter Code # (e.g. 106)">
+            <button id="go-btn">GO</button>
+        </div>
+        <div id="active-filter" style="display:none;"></div>
+    </header>
+
+    <div class="container">
+        <div id="product-grid" class="grid">
+            </div>
+        <div id="loader" class="loader">Loading viral finds...</div>
+    </div>
+
+    <script>
+        // 🔥 YOUR CONFIGURATION - REPLACE THESE! 🔥
+        const SUPABASE_URL = 'https://gpeijpqhpswggkbhnwqq.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdwZWlqcHFocHN3Z2drYmhud3FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5ODQ2MjIsImV4cCI6MjA3NjU2MDYyMn0.AHR1jQAQ1jA8NKc6LSoGybJJQ0w2c3jpVRJdC_BKC04';
+
+        // Initialize Supabase
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Get URL Params
+        const urlParams = new URLSearchParams(window.location.search);
+        const nicheFilter = urlParams.get('niche');
+
+        // DOM Elements
+        const grid = document.getElementById('product-grid');
+        const loader = document.getElementById('loader');
+        const codeInput = document.getElementById('code-input');
+        const goBtn = document.getElementById('go-btn');
+        const filterDisplay = document.getElementById('active-filter');
+
+        if (nicheFilter) {
+            filterDisplay.style.display = 'block';
+            filterDisplay.innerHTML = `<span class="niche-tag">Filtering: ${nicheFilter}</span>`;
+        }
+
+        // --- CORE FUNCTIONS ---
+
+        async function fetchProducts() {
+            let query = _supabase
+                .from('products')
+                .select('id, title, images, link, niche, idx')
+                .order('last_seen_at', { ascending: false }) // הכי חדש למעלה
+                .limit(50);
+
+            if (nicheFilter) {
+                // המרה פשוטה בין שמות נישות (URL) לשמות ב-DB אם צריך
+                // כרגע נניח שה-URL שולח ערך חלקי וה-DB יחפש אותו
+                // דוגמה: ?niche=toys -> יחפש products שבהם ה-niche מכיל "toys"
+                query = query.ilike('niche', `%${nicheFilter}%`);
+            }
+
+            const { data, error } = await query;
+
+            loader.style.display = 'none';
+
+            if (error) {
+                console.error('Error:', error);
+                grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1;">Could not load products.</p>';
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1;">No products found in this category.</p>';
+                return;
+            }
+
+            renderGrid(data);
+        }
+
+        function renderGrid(products) {
+            grid.innerHTML = products.map(p => {
+                // ניסיון לחלץ תמונה ראשונה
+                let imgUrl = '';
+                try {
+                    const parsed = typeof p.images === 'string' ? JSON.parse(p.images) : p.images;
+                    imgUrl = Array.isArray(parsed) ? parsed[0] : parsed;
+                } catch(e) { imgUrl = 'https://via.placeholder.com/300?text=No+Image'; }
+
+                // שימוש ב-ID כמזהה
+                const displayCode = p.id; 
+
+                return `
+                <div class="card" onclick="window.open('${p.link}', '_blank')">
+                    <div class="card-image-container">
+                        <img src="${imgUrl}" class="card-img" loading="lazy" alt="Product">
+                        <div class="code-badge">#${displayCode}</div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-title">${p.title}</div>
+                        <div class="card-cta">View on Amazon ></div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        async function handleCodeSearch() {
+            const code = codeInput.value.trim();
+            if (!code) return;
+
+            goBtn.innerText = '...';
+            
+            // חיפוש לפי עמודת ID (המספר הרץ)
+            const { data, error } = await _supabase
+                .from('products')
+                .select('link')
+                .eq('id', parseInt(code)) 
+                .single();
+
+            goBtn.innerText = 'GO';
+
+            if (data && data.link) {
+                window.location.href = data.link; // הפניה ישירה לאמזון
+            } else {
+                alert('Code #' + code + ' not found!');
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        
+        goBtn.addEventListener('click', handleCodeSearch);
+        
+        codeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleCodeSearch();
+        });
+
+        // Start
+        fetchProducts();
+
+    </script>
+</body>
+</html>

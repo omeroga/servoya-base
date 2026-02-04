@@ -1,0 +1,5 @@
+file 'C:/servoya-base/temp/B081RJ8DW1/clip0.mp4'
+file 'C:/servoya-base/temp/B081RJ8DW1/clip1.mp4'
+file 'C:/servoya-base/temp/B081RJ8DW1/clip2.mp4'
+file 'C:/servoya-base/temp/B081RJ8DW1/clip3.mp4'
+file 'C:/servoya-base/temp/B081RJ8DW1/clip4.mp4'
